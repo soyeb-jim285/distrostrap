@@ -13,7 +13,8 @@ def _chpasswd(ctx: InstallContext, executor: Executor, user: str, password: str)
     if executor.dry_run:
         executor.run(["echo", "(chpasswd)", user])
         return
-    cmd = ["chroot", str(ctx.target_mount), "chpasswd"]
+    _PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    cmd = ["chroot", str(ctx.target_mount), "env", f"PATH={_PATH}", "chpasswd"]
     subprocess.run(cmd, input=f"{user}:{password}\n", text=True, check=True)
 
 

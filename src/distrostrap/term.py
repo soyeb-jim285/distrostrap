@@ -396,6 +396,27 @@ def spinner(msg: str, func: "Callable[[], _T]") -> "_T":
     return result[0]
 
 
+def status_line(text: str, prefix: str = "") -> None:
+    """Overwrite the current terminal line with a status message.
+
+    An empty *text* clears the line and moves to the next line.
+    """
+    cols = termsize()[0]
+    if not text:
+        # Clear the status line and advance
+        sys.stdout.write(f"\r{' ' * (cols - 1)}\r\n")
+        sys.stdout.flush()
+        return
+    # Truncate to fit
+    vis = f"{prefix}{OVERLAY}{text}{RST}"
+    max_text = cols - vlen(prefix) - 4  # leave room
+    if len(text) > max_text:
+        text = text[:max_text - 1] + "…"
+        vis = f"{prefix}{OVERLAY}{text}{RST}"
+    sys.stdout.write(f"\r{' ' * (cols - 1)}\r{vis}")
+    sys.stdout.flush()
+
+
 def anykey(msg: str = "press any key to continue") -> None:
     """Wait for any keypress or click."""
     print(f"\n  {OVERLAY}{msg}{RST}", end="", flush=True)

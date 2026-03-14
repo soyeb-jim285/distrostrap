@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import platform
+import sys
 import time
 import traceback
 
@@ -430,16 +431,33 @@ def install_and_done(ctx: InstallContext) -> str:
     log_fh = open(log_path, "w")
     total = len(STAGES)
 
+    def _clear_status() -> None:
+        """Clear any active status line before printing a permanent line."""
+        cols = t.termsize()[0]
+        sys.stdout.write(f"\r{' ' * (cols - 1)}\r")
+        sys.stdout.flush()
+
     def on_cmd(cmd_str: str) -> None:
+        _clear_status()
         log_fh.write(f"$ {cmd_str}\n")
         log_fh.flush()
         print(f"{pad}    {t.OVERLAY}$ {cmd_str}{t.RST}")
 
     def on_progress(idx: int, tot: int, name: str) -> None:
+        _clear_status()
         log_fh.write(f"\n=== Stage {idx + 1}/{tot}: {name} ===\n")
         print(f"\n{pad}  {t.BLUE}{t.IC_ARROW}{t.RST} {t.TEXT}{name}{t.RST} {t.OVERLAY}[{idx + 1}/{tot}]{t.RST}")
 
-    executor = Executor(dry_run=ctx.dry_run, log_file=None, callback=on_cmd)
+    def on_stream(line: str) -> None:
+        """Show live output from long-running commands on an updating line."""
+        log_fh.write(f"{line}\n")
+        log_fh.flush()
+        t.status_line(line, prefix=f"{pad}    ")
+
+    executor = Executor(
+        dry_run=ctx.dry_run, log_file=None, callback=on_cmd,
+        stream_callback=on_stream,
+    )
 
     error: str | None = None
     try:

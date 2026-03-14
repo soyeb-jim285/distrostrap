@@ -186,20 +186,41 @@ class UbuntuPlugin(DistroPlugin):
         sources_path.parent.mkdir(parents=True, exist_ok=True)
         sources_path.write_text(sources)
 
-        executor.run_chroot(ctx, ["apt-get", "update"], stream=True)
-        packages = [
-            "linux-image-generic", "grub-efi-amd64", "network-manager",
-            "sudo", "passwd", "locales",
-        ]
-        if ctx.desktop:
-            packages.append(ctx.desktop)
+        # Optimize apt: enable HTTP pipelining, skip translations, retry.
+        apt_conf_dir = ctx.target_mount / "etc" / "apt" / "apt.conf.d"
+        apt_conf_dir.mkdir(parents=True, exist_ok=True)
+        (apt_conf_dir / "90distrostrap").write_text(
+            'Acquire::http::Pipeline-Depth "10";\n'
+            'Acquire::Languages "none";\n'
+            'APT::Acquire::Retries "3";\n'
+        )
 
+        executor.run_chroot(ctx, ["apt-get", "update"], stream=True)
+
+        _apt_env = {**os.environ, "DEBIAN_FRONTEND": "noninteractive"}
+
+        # Install base system packages (no recommends — faster, smaller).
+        # passwd: provides chpasswd for user setup
+        # util-linux: provides hwclock for timezone config
+        base_packages = [
+            "linux-image-generic", "grub-efi-amd64", "network-manager",
+            "sudo", "passwd", "util-linux", "locales",
+        ]
         executor.run_chroot(
             ctx,
-            ["apt-get", "install", "-y"] + packages,
-            env={**os.environ, "DEBIAN_FRONTEND": "noninteractive"},
+            ["apt-get", "install", "-y", "--no-install-recommends"] + base_packages,
+            env=_apt_env,
             stream=True,
         )
+
+        # Desktop environment (with recommends for a usable desktop).
+        if ctx.desktop:
+            executor.run_chroot(
+                ctx,
+                ["apt-get", "install", "-y", ctx.desktop],
+                env=_apt_env,
+                stream=True,
+            )
 
 
 # Auto-register on import.

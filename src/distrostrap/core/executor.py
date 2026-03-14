@@ -19,9 +19,11 @@ class Executor:
         dry_run: bool = False,
         log_file: str | None = None,
         callback: Callable[[str], None] | None = None,
+        stream_callback: Callable[[str], None] | None = None,
     ) -> None:
         self.dry_run = dry_run
         self.callback = callback
+        self.stream_callback = stream_callback
         self._log_fh = open(log_file, "a") if log_file else None  # noqa: SIM115
 
     def close(self) -> None:
@@ -84,6 +86,56 @@ class Executor:
                 stdout="",
                 stderr="",
             )
+
+        # stream=True with stream_callback: read stdout+stderr line-by-line
+        # so the TUI can show a live-updating status line instead of raw output.
+        if stream and self.stream_callback is not None:
+            import threading
+
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+            )
+            assert proc.stderr is not None  # noqa: S101
+            assert proc.stdout is not None  # noqa: S101
+
+            all_lines: list[str] = []
+            lock = threading.Lock()
+
+            def _read_pipe(pipe: object) -> None:
+                for raw_line in pipe:  # type: ignore[union-attr]
+                    line = raw_line.rstrip("\n\r")
+                    with lock:
+                        all_lines.append(line)
+                        self._log(line)
+                    if line.strip():
+                        self.stream_callback(line.strip())  # type: ignore[misc]
+
+            t_out = threading.Thread(target=_read_pipe, args=(proc.stdout,), daemon=True)
+            t_err = threading.Thread(target=_read_pipe, args=(proc.stderr,), daemon=True)
+            t_out.start()
+            t_err.start()
+            t_out.join()
+            t_err.join()
+            proc.wait()
+
+            # Signal end-of-stream so TUI can clear the status line.
+            self.stream_callback("")
+            result = subprocess.CompletedProcess(
+                args=cmd,
+                returncode=proc.returncode,
+                stdout="",
+                stderr="",
+            )
+            if check and result.returncode != 0:
+                output = "\n".join(all_lines)
+                raise subprocess.CalledProcessError(
+                    result.returncode, cmd, output, output,
+                )
+            return result
 
         # stream=True: stderr goes to terminal for live progress (curl -#).
         stderr_target = None if stream else subprocess.PIPE

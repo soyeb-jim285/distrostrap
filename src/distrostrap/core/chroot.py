@@ -31,7 +31,7 @@ def bind_mount(executor: Executor, target: Path) -> None:
     if is_uefi():
         dest = target / "sys/firmware/efi"
         dest.mkdir(parents=True, exist_ok=True)
-        executor.run(["mount", "--bind", str(efi_dir), str(dest)])
+        executor.run(["mount", "--bind", "/sys/firmware/efi", str(dest)])
 
     # DNS resolution — copy the host's resolv.conf so dnf/apt/pacman
     # can reach package mirrors from inside the chroot.
