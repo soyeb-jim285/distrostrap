@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
+import subprocess
+
 from distrostrap.core.context import InstallContext
 from distrostrap.core.executor import Executor
+
+
+def _chpasswd(ctx: InstallContext, executor: Executor, user: str, password: str) -> None:
+    """Set a user's password via chpasswd using stdin (no shell interpolation)."""
+    if executor.dry_run:
+        executor.run(["echo", "(chpasswd)", user])
+        return
+    cmd = ["chroot", str(ctx.target_mount), "chpasswd"]
+    subprocess.run(cmd, input=f"{user}:{password}\n", text=True, check=True)
 
 
 def _sudo_group(distro: str) -> str:
@@ -29,18 +40,12 @@ def configure_users(ctx: InstallContext, executor: Executor) -> None:
         ["useradd", "-m", "-G", group, "-s", "/bin/bash", ctx.username],
     )
 
-    # Set the user password via chpasswd.
-    executor.run_chroot(
-        ctx,
-        ["sh", "-c", f"echo '{ctx.username}:{ctx.password}' | chpasswd"],
-    )
+    # Set the user password via chpasswd (using stdin to avoid shell injection).
+    _chpasswd(ctx, executor, ctx.username, ctx.password)
 
     # Set the root password.
     root_pw = ctx.root_password if ctx.root_password else ctx.password
-    executor.run_chroot(
-        ctx,
-        ["sh", "-c", f"echo 'root:{root_pw}' | chpasswd"],
-    )
+    _chpasswd(ctx, executor, "root", root_pw)
 
     # Allow passwordless sudo for the group.
     sudoers_dir = ctx.target_mount / "etc" / "sudoers.d"

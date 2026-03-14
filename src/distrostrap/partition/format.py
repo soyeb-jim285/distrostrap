@@ -13,7 +13,7 @@ _MKFS_COMMANDS: dict[str, list[str]] = {
 }
 
 
-def _get_uuid(executor: Executor, path: str) -> str:
+def get_uuid(executor: Executor, path: str) -> str:
     """Read the filesystem UUID from *path* via blkid."""
     result = executor.run(
         ["blkid", "-s", "UUID", "-o", "value", path],
@@ -61,7 +61,7 @@ def format_partitions(
 
         executor.run([*mkfs_cmd, path])
 
-        uuid = _get_uuid(executor, path)
+        uuid = get_uuid(executor, path)
 
         if part.role == "root":
             ctx.root_uuid = uuid

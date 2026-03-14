@@ -114,19 +114,3 @@ def _generate_config(
     executor.run_chroot(ctx, [grub_mkconfig_cmd, "-o", cfg_path])
 
 
-def update_host_grub(executor: Executor) -> None:
-    """Re-run the host's GRUB config generator to pick up the new installation.
-
-    Tries ``update-grub`` first (Debian/Ubuntu), then falls back to
-    ``grub-mkconfig -o /boot/grub/grub.cfg`` (Arch, Fedora, etc.).
-    """
-    result = executor.run(["which", "update-grub"], check=False, capture=True)
-    if result.returncode == 0:
-        log.info("Updating host GRUB via update-grub")
-        executor.run(["update-grub"])
-    else:
-        cfg = Path("/boot/grub/grub.cfg")
-        if not cfg.exists():
-            cfg = Path("/boot/grub2/grub.cfg")
-        log.info("Updating host GRUB via grub-mkconfig -> %s", cfg)
-        executor.run(["grub-mkconfig", "-o", str(cfg)])

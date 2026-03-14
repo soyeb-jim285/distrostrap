@@ -44,29 +44,26 @@ def mount_target(
         )
 
     target = ctx.target_mount
+    target.mkdir(parents=True, exist_ok=True)
 
-    # Ensure the target mount directory exists
-    executor.run(["mkdir", "-p", str(target)])
+    by_role = {part.role: (part, path) for part, path in zip(layout.parts, part_paths)}
 
-    # Pass 1: mount root
-    for part, path in zip(layout.parts, part_paths):
-        if part.role == "root":
-            executor.run(["mount", path, str(target)])
-            break
+    # Mount root first
+    if "root" in by_role:
+        _, path = by_role["root"]
+        executor.run(["mount", path, str(target)])
 
-    # Pass 2: mount ESP
-    for part, path in zip(layout.parts, part_paths):
-        if part.role == "esp":
-            esp_mount = target / part.mountpoint.lstrip("/")
-            executor.run(["mkdir", "-p", str(esp_mount)])
-            executor.run(["mount", path, str(esp_mount)])
-            break
+    # Mount ESP
+    if "esp" in by_role:
+        part, path = by_role["esp"]
+        esp_mount = target / part.mountpoint.lstrip("/")
+        esp_mount.mkdir(parents=True, exist_ok=True)
+        executor.run(["mount", path, str(esp_mount)])
 
-    # Pass 3: activate swap
-    for part, path in zip(layout.parts, part_paths):
-        if part.role == "swap":
-            executor.run(["swapon", path])
-            break
+    # Activate swap
+    if "swap" in by_role:
+        _, path = by_role["swap"]
+        executor.run(["swapon", path])
 
 
 def unmount_target(
@@ -82,27 +79,25 @@ def unmount_target(
     if layout is None:
         return
 
-    pairs = list(zip(layout.parts, part_paths))
+    by_role = {part.role: (part, path) for part, path in zip(layout.parts, part_paths)}
 
     # Swapoff
-    for part, path in pairs:
-        if part.role == "swap":
-            try:
-                executor.run(["swapoff", path], check=False)
-            except Exception:
-                log.debug("swapoff %s failed (ignored)", path)
-            break
+    if "swap" in by_role:
+        _, path = by_role["swap"]
+        try:
+            executor.run(["swapoff", path], check=False)
+        except Exception:
+            log.debug("swapoff %s failed (ignored)", path)
 
     # Unmount ESP
     target = ctx.target_mount
-    for part, path in pairs:
-        if part.role == "esp":
-            esp_mount = target / part.mountpoint.lstrip("/")
-            try:
-                executor.run(["umount", str(esp_mount)], check=False)
-            except Exception:
-                log.debug("umount %s failed (ignored)", esp_mount)
-            break
+    if "esp" in by_role:
+        part, _ = by_role["esp"]
+        esp_mount = target / part.mountpoint.lstrip("/")
+        try:
+            executor.run(["umount", str(esp_mount)], check=False)
+        except Exception:
+            log.debug("umount %s failed (ignored)", esp_mount)
 
     # Unmount root
     try:

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import logging
-import shutil
+import subprocess
 import textwrap
 from pathlib import Path
 
 from distrostrap.core.context import InstallContext
 from distrostrap.core.executor import Executor
+from distrostrap.core.host_info import has_command
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def update_host_grub(ctx: InstallContext, executor: Executor) -> None:
 
 def _try_os_prober(executor: Executor) -> bool:
     """Run update-grub on the host and return True if it succeeds."""
-    if shutil.which("os-prober") is None:
+    if not has_command("os-prober"):
         log.info("os-prober is not installed on the host")
         return False
 
@@ -154,10 +155,10 @@ def _run_host_grub_mkconfig(
     executor: Executor,
     *,
     check: bool = True,
-) -> object:
+) -> subprocess.CompletedProcess[str]:
     """Run the appropriate grub-mkconfig command on the host."""
     # Prefer update-grub (Debian/Ubuntu wrapper) when available.
-    if shutil.which("update-grub") is not None:
+    if has_command("update-grub"):
         return executor.run(["update-grub"], check=check)
 
     # Determine output path — try common locations in order.
@@ -173,7 +174,7 @@ def _run_host_grub_mkconfig(
             grub_cfg = candidate
             break
 
-    mkconfig = "grub2-mkconfig" if shutil.which("grub2-mkconfig") else "grub-mkconfig"
+    mkconfig = "grub2-mkconfig" if has_command("grub2-mkconfig") else "grub-mkconfig"
     return executor.run([mkconfig, "-o", str(grub_cfg)], check=check)
 
 

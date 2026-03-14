@@ -30,4 +30,5 @@ class InstallContext:
     root_uuid: str = ""
     esp_uuid: str = ""
     swap_uuid: str = ""
+    partition_paths: list[str] = field(default_factory=list)
     log_file: str = "/var/log/distrostrap.log"

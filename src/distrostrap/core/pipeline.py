@@ -12,12 +12,6 @@ if TYPE_CHECKING:
 
 
 # ---------------------------------------------------------------------------
-# Shared state that stages pass between each other
-# ---------------------------------------------------------------------------
-_part_paths: list[str] = []
-
-
-# ---------------------------------------------------------------------------
 # Stage functions
 # ---------------------------------------------------------------------------
 
@@ -53,11 +47,9 @@ def _stage_preflight(ctx: InstallContext, executor: Executor) -> None:
 
 def _stage_partition(ctx: InstallContext, executor: Executor) -> None:
     """Resolve the partition layout and create partitions on the target."""
-    global _part_paths
-
     if ctx.target_is_partition:
         # Installing to an existing partition — no partitioning needed.
-        _part_paths = [ctx.target_device]
+        ctx.partition_paths = [ctx.target_device]
         return
 
     from distrostrap.partition.layout import layout_from_name
@@ -68,7 +60,7 @@ def _stage_partition(ctx: InstallContext, executor: Executor) -> None:
     elif ctx.partition_layout is None:
         ctx.partition_layout = layout_from_name("auto", ctx.boot_mode)
 
-    _part_paths = create_partitions(ctx, executor)
+    ctx.partition_paths = create_partitions(ctx, executor)
 
 
 def _stage_format(ctx: InstallContext, executor: Executor) -> None:
@@ -76,16 +68,13 @@ def _stage_format(ctx: InstallContext, executor: Executor) -> None:
     if ctx.target_is_partition:
         # Format just the single target partition as ext4 root.
         executor.run(["mkfs.ext4", "-F", ctx.target_device])
-        result = executor.run(
-            ["blkid", "-s", "UUID", "-o", "value", ctx.target_device],
-            capture=True,
-        )
-        ctx.root_uuid = result.stdout.strip()
+        from distrostrap.partition.format import get_uuid
+        ctx.root_uuid = get_uuid(executor, ctx.target_device)
         return
 
     from distrostrap.partition.format import format_partitions
 
-    format_partitions(ctx, executor, _part_paths)
+    format_partitions(ctx, executor, ctx.partition_paths)
 
 
 def _stage_mount(ctx: InstallContext, executor: Executor) -> None:
@@ -98,7 +87,7 @@ def _stage_mount(ctx: InstallContext, executor: Executor) -> None:
 
     from distrostrap.partition.mount import mount_target
 
-    mount_target(ctx, executor, _part_paths)
+    mount_target(ctx, executor, ctx.partition_paths)
 
 
 def _stage_bootstrap(ctx: InstallContext, executor: Executor) -> None:
@@ -220,7 +209,7 @@ def run_install(
                     ["umount", str(ctx.target_mount)], check=False,
                 )
             else:
-                unmount_target(ctx, executor, _part_paths)
+                unmount_target(ctx, executor, ctx.partition_paths)
         except Exception:
             pass
         unbind_mount(executor, ctx.target_mount)

@@ -302,24 +302,7 @@ def user_config(ctx: InstallContext) -> str:
         t.show_cursor()
 
         def _field(label: str, default: str = "", password: bool = False) -> str:
-            t.disable_mouse()
-            try:
-                if password:
-                    import getpass
-                    print(f"{pad}  {t.OVERLAY}{label}{t.RST}")
-                    try:
-                        return getpass.getpass(f"{pad}  {t.BLUE}▸{t.RST} ")
-                    except EOFError:
-                        return ""
-                sfx = f" {t.DIM}({default}){t.RST}" if default else ""
-                print(f"{pad}  {t.OVERLAY}{label}{sfx}{t.RST}")
-                try:
-                    val = input(f"{pad}  {t.BLUE}▸{t.RST} ")
-                except EOFError:
-                    val = ""
-                return val.strip() if val.strip() else default
-            finally:
-                t.enable_mouse()
+            return t.input_field(label, default=default, password=password, prefix=pad)
 
         hostname = _field("hostname")
         if not hostname:

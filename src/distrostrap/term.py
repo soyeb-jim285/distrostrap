@@ -8,6 +8,10 @@ import select
 import sys
 import termios
 import tty
+from collections.abc import Callable
+from typing import TypeVar
+
+_T = TypeVar("_T")
 
 # ── Catppuccin Mocha (truecolor) ─────────────────────
 
@@ -330,23 +334,25 @@ def table_select(
             return -1
 
 
-def input_field(label: str, default: str = "", password: bool = False) -> str:
-    """Prompt for a single value."""
+def input_field(
+    label: str, default: str = "", password: bool = False, prefix: str = "",
+) -> str:
+    """Prompt for a single value, with optional *prefix* for alignment."""
     show_cursor()
     disable_mouse()
     try:
         if password:
             import getpass
 
-            print(f"  {OVERLAY}{label}{RST}")
+            print(f"{prefix}  {OVERLAY}{label}{RST}")
             try:
-                return getpass.getpass(f"  {BLUE}▸{RST} ")
+                return getpass.getpass(f"{prefix}  {BLUE}▸{RST} ")
             except EOFError:
                 return ""
         sfx = f" {DIM}({default}){RST}" if default else ""
-        print(f"  {OVERLAY}{label}{sfx}{RST}")
+        print(f"{prefix}  {OVERLAY}{label}{sfx}{RST}")
         try:
-            val = input(f"  {BLUE}▸{RST} ")
+            val = input(f"{prefix}  {BLUE}▸{RST} ")
         except EOFError:
             val = ""
         return val.strip() if val.strip() else default
@@ -354,7 +360,7 @@ def input_field(label: str, default: str = "", password: bool = False) -> str:
         enable_mouse()
 
 
-def spinner(msg: str, func: object) -> object:
+def spinner(msg: str, func: "Callable[[], _T]") -> "_T":
     """Show an animated spinner in a centered box while func() runs."""
     import threading
     import time as _time

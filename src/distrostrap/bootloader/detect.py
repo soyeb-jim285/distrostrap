@@ -11,10 +11,6 @@ from distrostrap.core.executor import Executor
 _ESP_PART_TYPE_GUID = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 
 
-def detect_boot_mode() -> str:
-    """Return ``"uefi"`` if the host booted via UEFI, otherwise ``"bios"``."""
-    return "uefi" if Path("/sys/firmware/efi").exists() else "bios"
-
 
 def find_esp(executor: Executor) -> str | None:
     """Locate an existing EFI System Partition on the host.

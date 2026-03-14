@@ -27,8 +27,8 @@ def bind_mount(executor: Executor, target: Path) -> None:
         executor.run(["mount", "--bind", source, str(mount_point)])
 
     # Optionally mount EFI variables if the host is UEFI-booted.
-    efi_dir = Path("/sys/firmware/efi")
-    if efi_dir.exists():
+    from distrostrap.core.host_info import is_uefi
+    if is_uefi():
         dest = target / "sys/firmware/efi"
         dest.mkdir(parents=True, exist_ok=True)
         executor.run(["mount", "--bind", str(efi_dir), str(dest)])
@@ -55,9 +55,9 @@ def unbind_mount(executor: Executor, target: Path) -> None:
     for _source, relative in _BIND_MOUNTS:
         points.append(str(target / relative))
 
-    efi_dest = str(target / "sys/firmware/efi")
-    if Path(efi_dest).exists():
-        points.append(efi_dest)
+    from distrostrap.core.host_info import is_uefi
+    if is_uefi():
+        points.append(str(target / "sys/firmware/efi"))
 
     # Unmount in reverse so that nested mounts are removed first.
     for mount_point in reversed(points):

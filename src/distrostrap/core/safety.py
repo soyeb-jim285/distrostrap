@@ -23,29 +23,37 @@ def _base_device(path: str) -> str:
     return re.sub(r"\d+$", "", path)
 
 
-def get_root_device() -> str:
-    """Return the block device that is mounted on ``/``."""
+def _read_mounts() -> list[list[str]]:
+    """Read /proc/mounts and return a list of split lines."""
     try:
         with open("/proc/mounts") as fh:
-            for line in fh:
-                parts = line.split()
-                if len(parts) >= 2 and parts[1] == "/":
-                    return parts[0]
+            return [line.split() for line in fh]
     except FileNotFoundError:
-        pass
+        return []
+
+
+def get_root_device() -> str:
+    """Return the block device that is mounted on ``/``."""
+    for parts in _read_mounts():
+        if len(parts) >= 2 and parts[1] == "/":
+            return parts[0]
     return ""
 
 
 def is_mounted(device: str) -> bool:
     """Return ``True`` if *device* appears in ``/proc/mounts``."""
-    try:
-        with open("/proc/mounts") as fh:
-            for line in fh:
-                if line.split()[0] == device:
-                    return True
-    except (FileNotFoundError, IndexError):
-        pass
+    for parts in _read_mounts():
+        if parts and parts[0] == device:
+            return True
     return False
+
+
+def is_host_device(device: str) -> bool:
+    """Return ``True`` if *device* is on the same disk as the host root."""
+    root_dev = get_root_device()
+    if not root_dev:
+        return False
+    return _base_device(device) == _base_device(root_dev)
 
 
 def validate_target(device: str, is_partition: bool = False) -> list[str]:
@@ -74,7 +82,13 @@ def validate_target(device: str, is_partition: bool = False) -> list[str]:
         errors.append(f"{device} is not a block device.")
         return errors
 
-    root_dev = get_root_device()
+    # Read mount table once for all checks below.
+    mounts = _read_mounts()
+    root_dev = ""
+    for parts in mounts:
+        if len(parts) >= 2 and parts[1] == "/":
+            root_dev = parts[0]
+            break
 
     if is_partition:
         # --- Partition target: only block the exact host root partition ---
@@ -84,33 +98,30 @@ def validate_target(device: str, is_partition: bool = False) -> list[str]:
                 "Refusing to operate on it."
             )
 
-        if is_mounted(device):
-            errors.append(
-                f"{device} is currently mounted. "
-                "It will need to be unmounted before installation."
-            )
+        for parts in mounts:
+            if parts and parts[0] == device:
+                errors.append(
+                    f"{device} is currently mounted. "
+                    "It will need to be unmounted before installation."
+                )
+                break
     else:
         # --- Full disk target: block any disk containing host root ---
-        if root_dev:
-            device_base = _base_device(device)
-            root_base = _base_device(root_dev)
-            if device_base == root_base:
-                errors.append(
-                    f"{device} contains the host root filesystem ({root_dev}). "
-                    "Refusing to operate on it."
-                )
+        device_base = _base_device(device)
+        if is_host_device(device):
+            errors.append(
+                f"{device} contains the host root filesystem ({root_dev}). "
+                "Refusing to operate on it."
+            )
 
         # Check for any mounted partitions on this disk.
-        device_base = _base_device(device)
-        try:
-            with open("/proc/mounts") as fh:
-                for line in fh:
-                    mount_dev = line.split()[0]
-                    if mount_dev.startswith(device_base) and mount_dev != device_base:
-                        errors.append(f"Partition {mount_dev} is currently mounted.")
-                    elif mount_dev == device:
-                        errors.append(f"Device {device} is currently mounted.")
-        except FileNotFoundError:
-            pass
+        for parts in mounts:
+            if not parts:
+                continue
+            mount_dev = parts[0]
+            if mount_dev.startswith(device_base) and mount_dev != device_base:
+                errors.append(f"Partition {mount_dev} is currently mounted.")
+            elif mount_dev == device:
+                errors.append(f"Device {device} is currently mounted.")
 
     return errors
