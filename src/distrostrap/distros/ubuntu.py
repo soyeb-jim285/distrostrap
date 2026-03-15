@@ -199,25 +199,12 @@ class UbuntuPlugin(DistroPlugin):
 
         _apt_env = {**os.environ, "DEBIAN_FRONTEND": "noninteractive"}
 
-        # Ensure initramfs includes all common storage drivers (NVMe, AHCI,
-        # etc.).  Inside a chroot update-initramfs cannot probe real hardware,
-        # so it would omit drivers like nvme if MODULES=dep (the default on
-        # some configurations).  Setting MODULES=most fixes this.
-        initramfs_conf = ctx.target_mount / "etc" / "initramfs-tools"
-        initramfs_conf.mkdir(parents=True, exist_ok=True)
-        conf_file = initramfs_conf / "initramfs.conf"
-        if conf_file.exists():
-            text = conf_file.read_text()
-            text = text.replace("MODULES=dep", "MODULES=most")
-            conf_file.write_text(text)
-        else:
-            conf_file.write_text("MODULES=most\n")
-
         # Install base system packages (no recommends — faster, smaller).
         # passwd: provides chpasswd for user setup
         # util-linux: provides hwclock for timezone config
         base_packages = [
-            "linux-image-generic", "grub-efi-amd64", "network-manager",
+            "linux-image-generic", "initramfs-tools",
+            "grub-efi-amd64", "network-manager",
             "sudo", "passwd", "util-linux", "locales",
         ]
         executor.run_chroot(
@@ -225,6 +212,19 @@ class UbuntuPlugin(DistroPlugin):
             ["apt-get", "install", "-y", "--no-install-recommends"] + base_packages,
             env=_apt_env,
             stream=True,
+        )
+
+        # Rebuild initramfs with all common storage drivers.  Inside a chroot
+        # update-initramfs cannot probe real hardware so an initramfs built
+        # with MODULES=dep (the default) will omit NVMe, AHCI, etc.  Force
+        # MODULES=most and regenerate so the target can boot on any hardware.
+        initramfs_conf = ctx.target_mount / "etc" / "initramfs-tools" / "initramfs.conf"
+        if initramfs_conf.exists():
+            text = initramfs_conf.read_text()
+            text = text.replace("MODULES=dep", "MODULES=most")
+            initramfs_conf.write_text(text)
+        executor.run_chroot(
+            ctx, ["update-initramfs", "-u", "-k", "all"], env=_apt_env,
         )
 
         # Desktop environment (with recommends for a usable desktop).

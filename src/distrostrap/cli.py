@@ -38,8 +38,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--log-file",
         type=str,
-        default="/var/log/distrostrap.log",
-        help="Path to the log file (default: /var/log/distrostrap.log).",
+        default="distrostrap.log",
+        help="Path to the log file (default: distrostrap.log in current directory).",
     )
     return parser
 

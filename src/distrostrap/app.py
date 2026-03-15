@@ -427,7 +427,7 @@ def install_and_done(ctx: InstallContext) -> str:
     print(f"\n{pad}  {t.MAUVE}{t.BOLD}╭─ Installing ─────────────────────────────────────────────╮{t.RST}")
     print(f"{pad}  {t.MAUVE}{t.BOLD}╰──────────────────────────────────────────────────────────╯{t.RST}\n")
 
-    log_path = "/tmp/distrostrap-install.log"
+    log_path = "distrostrap.log"
     log_fh = open(log_path, "w")
     total = len(STAGES)
 
