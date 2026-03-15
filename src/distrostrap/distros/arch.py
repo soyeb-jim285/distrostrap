@@ -62,6 +62,13 @@ class ArchPlugin(DistroPlugin):
                 "Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n"
             )
 
+        # Copy host DNS config so pacstrap can reach mirrors from the chroot.
+        resolv_src = Path("/etc/resolv.conf")
+        resolv_dst = _BOOTSTRAP_ROOT / "etc" / "resolv.conf"
+        if resolv_src.exists():
+            resolv_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(resolv_src), str(resolv_dst))
+
         # Initialise the bootstrap keyring.
         executor.run(
             ["pacman-key", "--init"],
@@ -120,7 +127,7 @@ class ArchPlugin(DistroPlugin):
     @staticmethod
     def _unbind_target(ctx: InstallContext, executor: Executor) -> None:
         target_inside = _BOOTSTRAP_ROOT / "target"
-        executor.run(["umount", str(target_inside)], check=False)
+        executor.run(["umount", "-l", str(target_inside)], check=False)
 
 
 # Auto-register on import.

@@ -22,16 +22,30 @@ distrostrap downloads the necessary bootstrap tools automatically, so you can in
 
 ## Installation
 
+### Prerequisites (Ubuntu/Debian)
+
+Ubuntu minimal or server installs may not have everything out of the box. Install the required packages first:
+
+```bash
+sudo apt update
+sudo apt install -y git python3 python3-pip python3-venv curl
+```
+
+On Arch, Fedora, and most desktop installs these are already present.
+
+### Setup
+
 ```bash
 git clone https://github.com/soyeb-jim285/distrostrap.git
 cd distrostrap
-pip install -e .
+python3 -m venv .venv
+.venv/bin/pip install -e .
 ```
 
 For development (includes pytest, ruff, mypy):
 
 ```bash
-pip install -e ".[dev]"
+.venv/bin/pip install -e ".[dev]"
 ```
 
 ## Usage
@@ -39,7 +53,7 @@ pip install -e ".[dev]"
 ### Interactive Mode (TUI)
 
 ```bash
-sudo distrostrap
+sudo .venv/bin/distrostrap
 ```
 
 This launches a step-by-step terminal wizard:
@@ -55,7 +69,7 @@ This launches a step-by-step terminal wizard:
 ### Headless Mode (YAML Config)
 
 ```bash
-sudo distrostrap --config config.yaml --no-tui
+sudo .venv/bin/distrostrap --config config.yaml --no-tui
 ```
 
 Example `config.yaml`:
@@ -78,7 +92,7 @@ desktop: ""
 Simulate the entire installation without touching any disk:
 
 ```bash
-sudo distrostrap --dry-run
+sudo .venv/bin/distrostrap --dry-run
 ```
 
 ### CLI Options
@@ -137,16 +151,16 @@ distrostrap includes several safeguards:
 
 ```bash
 # Run tests
-pytest
+.venv/bin/pytest
 
 # Run a single test
-pytest tests/unit/test_safety.py -v
+.venv/bin/pytest tests/unit/test_safety.py -v
 
 # Lint
-ruff check src/ tests/
+.venv/bin/ruff check src/ tests/
 
 # Type check
-mypy src/
+.venv/bin/mypy src/
 ```
 
 ## Project Structure
