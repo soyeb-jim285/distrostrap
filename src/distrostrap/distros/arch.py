@@ -110,6 +110,13 @@ class ArchPlugin(DistroPlugin):
                 self._unbind_target(ctx, executor)
 
     def post_bootstrap(self, ctx: InstallContext, executor: Executor) -> None:
+        # Enable parallel downloads in pacman.
+        pacman_conf = ctx.target_mount / "etc" / "pacman.conf"
+        if pacman_conf.exists():
+            text = pacman_conf.read_text()
+            text = text.replace("#ParallelDownloads", "ParallelDownloads")
+            pacman_conf.write_text(text)
+
         executor.run_chroot(ctx, ["pacman-key", "--init"])
         executor.run_chroot(ctx, ["pacman-key", "--populate", "archlinux"])
         packages = [

@@ -16,6 +16,7 @@ _BIND_MOUNTS: list[tuple[str, str]] = [
     ("/dev/pts", "dev/pts"),
     ("/proc", "proc"),
     ("/sys", "sys"),
+    ("/run", "run"),
 ]
 
 
