@@ -199,6 +199,20 @@ class UbuntuPlugin(DistroPlugin):
 
         _apt_env = {**os.environ, "DEBIAN_FRONTEND": "noninteractive"}
 
+        # Ensure initramfs includes all common storage drivers (NVMe, AHCI,
+        # etc.).  Inside a chroot update-initramfs cannot probe real hardware,
+        # so it would omit drivers like nvme if MODULES=dep (the default on
+        # some configurations).  Setting MODULES=most fixes this.
+        initramfs_conf = ctx.target_mount / "etc" / "initramfs-tools"
+        initramfs_conf.mkdir(parents=True, exist_ok=True)
+        conf_file = initramfs_conf / "initramfs.conf"
+        if conf_file.exists():
+            text = conf_file.read_text()
+            text = text.replace("MODULES=dep", "MODULES=most")
+            conf_file.write_text(text)
+        else:
+            conf_file.write_text("MODULES=most\n")
+
         # Install base system packages (no recommends — faster, smaller).
         # passwd: provides chpasswd for user setup
         # util-linux: provides hwclock for timezone config

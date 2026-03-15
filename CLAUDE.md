@@ -4,33 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Development Commands
 
+All commands use the project `.venv` — prefix with `.venv/bin/` or activate it first.
+
 ```bash
 # Install in dev mode
-pip install -e ".[dev]"
+.venv/bin/pip install -e ".[dev]"
 
 # Run the TUI installer (requires root)
-sudo distrostrap
+sudo .venv/bin/distrostrap
 
 # Run headless with a YAML config
-sudo distrostrap --config config.yaml --no-tui
+sudo .venv/bin/distrostrap --config config.yaml --no-tui
 
 # Dry-run (no actual disk operations)
-sudo distrostrap --dry-run
+sudo .venv/bin/distrostrap --dry-run
 
 # Run all tests
-pytest
+.venv/bin/pytest
 
 # Run a single test file
-pytest tests/unit/test_safety.py
+.venv/bin/pytest tests/unit/test_safety.py
 
 # Run a single test
-pytest tests/unit/test_safety.py::test_validate_target_blocks_host_root -v
+.venv/bin/pytest tests/unit/test_safety.py::test_validate_target_blocks_host_root -v
 
 # Lint
-ruff check src/ tests/
+.venv/bin/ruff check src/ tests/
 
 # Type check
-mypy src/
+.venv/bin/mypy src/
 ```
 
 ## Architecture
