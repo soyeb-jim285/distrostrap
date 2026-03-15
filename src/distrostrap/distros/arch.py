@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from distrostrap.core.chroot import chroot_context
 from distrostrap.core.context import InstallContext
 from distrostrap.core.executor import Executor
 from distrostrap.distros.base import DistroPlugin
@@ -69,6 +70,11 @@ class ArchPlugin(DistroPlugin):
             resolv_dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(str(resolv_src), str(resolv_dst))
 
+        # Ensure /etc/mtab exists so pacman can determine mount points.
+        mtab = _BOOTSTRAP_ROOT / "etc" / "mtab"
+        if not mtab.exists() and not mtab.is_symlink():
+            mtab.symlink_to("/proc/self/mounts")
+
         # Initialise the bootstrap keyring.
         executor.run(
             ["pacman-key", "--init"],
@@ -89,15 +95,19 @@ class ArchPlugin(DistroPlugin):
             return
 
         # Use the downloaded bootstrap environment.
-        self._bind_target(ctx, executor)
-        try:
-            executor.run(
-                ["pacstrap", "-K", "/target", "base"],
-                chroot=_BOOTSTRAP_ROOT,
-                stream=True,
-            )
-        finally:
-            self._unbind_target(ctx, executor)
+        # Bind-mount /proc, /dev, /sys into the bootstrap chroot so that
+        # pacman can read /etc/mtab -> /proc/self/mounts and determine
+        # filesystem mount points (required when running from a non-Arch host).
+        with chroot_context(executor, _BOOTSTRAP_ROOT):
+            self._bind_target(ctx, executor)
+            try:
+                executor.run(
+                    ["pacstrap", "-K", "/target", "base"],
+                    chroot=_BOOTSTRAP_ROOT,
+                    stream=True,
+                )
+            finally:
+                self._unbind_target(ctx, executor)
 
     def post_bootstrap(self, ctx: InstallContext, executor: Executor) -> None:
         executor.run_chroot(ctx, ["pacman-key", "--init"])
