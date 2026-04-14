@@ -65,7 +65,7 @@ class FedoraPlugin(DistroPlugin):
             missing.append("dnf")
         return missing
 
-    def acquire_tools(self, executor: Executor) -> None:
+    def acquire_tools(self, ctx: InstallContext, executor: Executor) -> None:
         """Download the Fedora container base image and extract it."""
         if _BOOTSTRAP_ROOT.exists():
             return

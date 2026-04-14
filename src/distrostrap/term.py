@@ -278,6 +278,61 @@ def menu(title: str, items: list[str], back: bool = True) -> int:
             return -1
 
 
+def search_menu(title: str, items: list[str], back: bool = True) -> int:
+    """Fuzzy/substring-search menu. Returns index into `items`, or -1."""
+    if not items:
+        return -1
+
+    query = ""
+    idx = 0
+    hint = f"{OVERLAY}type to filter  ↑↓ navigate  ⏎ select  esc back{RST}"
+
+    def _filter(q: str) -> list[int]:
+        if not q:
+            return list(range(len(items)))
+        ql = q.lower()
+        return [i for i, label in enumerate(items) if ql in label.lower()]
+
+    while True:
+        matches = _filter(query)
+        if idx >= len(matches):
+            idx = max(0, len(matches) - 1)
+
+        lines: list[str] = [f"{BLUE}▸{RST} {TEXT}{query}{RST}{OVERLAY}_{RST}", ""]
+        if not matches:
+            lines.append(f"   {OVERLAY}(no matches){RST}")
+        else:
+            visible = matches[:15]
+            for row, i in enumerate(visible):
+                label = items[i]
+                if row == idx:
+                    lines.append(f"{BLUE}{IC_ARROW}{RST}  {TEXT}{label}{RST}")
+                else:
+                    lines.append(f"   {OVERLAY}{label}{RST}")
+
+        clear()
+        box(lines, title=title, hint=hint)
+
+        key = readkey()
+        if key in (UP, SCROLL_UP):
+            if matches:
+                idx = (idx - 1) % min(len(matches), 15)
+        elif key in (DOWN, SCROLL_DOWN):
+            if matches:
+                idx = (idx + 1) % min(len(matches), 15)
+        elif key == ENTER:
+            if matches:
+                return matches[idx]
+        elif key == ESC:
+            return -1
+        elif key == "backspace":
+            query = query[:-1]
+            idx = 0
+        elif len(key) == 1 and key.isprintable():
+            query += key
+            idx = 0
+
+
 def table_select(
     title: str, headers: list[str], rows: list[list[str]], back: bool = True,
 ) -> int:

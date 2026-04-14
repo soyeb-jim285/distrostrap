@@ -155,7 +155,63 @@ def distro_select(ctx: InstallContext) -> str:
     ctx.distro = plugin.name
     ctx.distro_variant = variant
     ctx.desktop = desktop_pkg
+
+    if plugin.name == "arch":
+        ctx.mirror_countries = _prompt_mirror_countries()
+
     return "next"
+
+
+# ISO 3166-1 alpha-2 codes for the countries Arch mirrors in.
+# Source: https://archlinux.org/mirrors/status/
+_MIRROR_COUNTRIES: list[tuple[str, str]] = [
+    ("AU", "Australia"), ("AT", "Austria"), ("BD", "Bangladesh"),
+    ("BY", "Belarus"), ("BE", "Belgium"), ("BA", "Bosnia and Herzegovina"),
+    ("BR", "Brazil"), ("BG", "Bulgaria"), ("CA", "Canada"), ("CL", "Chile"),
+    ("CN", "China"), ("CO", "Colombia"), ("HR", "Croatia"), ("CZ", "Czechia"),
+    ("DK", "Denmark"), ("EC", "Ecuador"), ("EE", "Estonia"), ("FI", "Finland"),
+    ("FR", "France"), ("GE", "Georgia"), ("DE", "Germany"), ("GR", "Greece"),
+    ("HK", "Hong Kong"), ("HU", "Hungary"), ("IS", "Iceland"), ("IN", "India"),
+    ("ID", "Indonesia"), ("IR", "Iran"), ("IE", "Ireland"), ("IL", "Israel"),
+    ("IT", "Italy"), ("JP", "Japan"), ("KZ", "Kazakhstan"), ("KE", "Kenya"),
+    ("LV", "Latvia"), ("LT", "Lithuania"), ("LU", "Luxembourg"),
+    ("MK", "Macedonia"), ("MX", "Mexico"), ("MD", "Moldova"),
+    ("NL", "Netherlands"), ("NC", "New Caledonia"), ("NZ", "New Zealand"),
+    ("NO", "Norway"), ("PK", "Pakistan"), ("PY", "Paraguay"), ("PH", "Philippines"),
+    ("PL", "Poland"), ("PT", "Portugal"), ("RO", "Romania"), ("RU", "Russia"),
+    ("RS", "Serbia"), ("SG", "Singapore"), ("SK", "Slovakia"), ("SI", "Slovenia"),
+    ("ZA", "South Africa"), ("KR", "South Korea"), ("ES", "Spain"),
+    ("SE", "Sweden"), ("CH", "Switzerland"), ("TW", "Taiwan"), ("TH", "Thailand"),
+    ("TR", "Turkey"), ("UA", "Ukraine"), ("AE", "United Arab Emirates"),
+    ("GB", "United Kingdom"), ("US", "United States"), ("VN", "Vietnam"),
+]
+
+
+def _prompt_mirror_countries() -> list[str]:
+    t = term
+    selected: list[str] = []
+
+    while True:
+        header = "Arch Mirrors"
+        if selected:
+            header += f" — selected: {','.join(selected)}"
+
+        labels = ["[Done — use selected / default if empty]"]
+        labels += [
+            f"{code}  {name}" + ("  ✓" if code in selected else "")
+            for code, name in _MIRROR_COUNTRIES
+        ]
+
+        idx = t.search_menu(header, labels)
+        if idx < 0:
+            return selected
+        if idx == 0:
+            return selected
+        code = _MIRROR_COUNTRIES[idx - 1][0]
+        if code in selected:
+            selected.remove(code)
+        else:
+            selected.append(code)
 
 
 def drive_select(ctx: InstallContext) -> str:

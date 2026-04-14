@@ -32,3 +32,4 @@ class InstallContext:
     swap_uuid: str = ""
     partition_paths: list[str] = field(default_factory=list)
     log_file: str = "distrostrap.log"
+    mirror_countries: list[str] = field(default_factory=list)

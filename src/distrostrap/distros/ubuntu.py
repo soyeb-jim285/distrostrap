@@ -76,7 +76,7 @@ class UbuntuPlugin(DistroPlugin):
             missing.append("debootstrap")
         return missing
 
-    def acquire_tools(self, executor: Executor) -> None:
+    def acquire_tools(self, ctx: InstallContext, executor: Executor) -> None:
         """Download a debootstrap .deb and extract it without dpkg-deb.
 
         A .deb is just an ``ar`` archive containing ``data.tar.*``.  We use

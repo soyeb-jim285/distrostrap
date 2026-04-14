@@ -15,6 +15,44 @@ _BOOTSTRAP_URL = (
     "archlinux-bootstrap-x86_64.tar.zst"
 )
 _BOOTSTRAP_ROOT = Path("/tmp/distrostrap-arch-bootstrap")
+_DEFAULT_MIRROR = "Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n"
+
+
+def _build_mirrorlist(countries: list[str]) -> str:
+    """Fetch an Arch mirrorlist for the given ISO country codes.
+
+    Returns a pacman-ready mirrorlist (Server lines uncommented). Falls back
+    to the default geo-mirror on any failure.
+    """
+    if not countries:
+        return _DEFAULT_MIRROR
+
+    import urllib.parse
+    import urllib.request
+
+    query = [("country", c.strip().upper()) for c in countries if c.strip()]
+    query += [
+        ("protocol", "https"),
+        ("ip_version", "4"),
+        ("use_mirror_status", "on"),
+    ]
+    url = "https://archlinux.org/mirrorlist/?" + urllib.parse.urlencode(query)
+
+    try:
+        with urllib.request.urlopen(url, timeout=30) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+    except Exception:
+        return _DEFAULT_MIRROR
+
+    out: list[str] = []
+    for line in body.splitlines():
+        if line.startswith("#Server ="):
+            out.append(line[1:])
+        elif line.startswith("Server ="):
+            out.append(line)
+    if not out:
+        return _DEFAULT_MIRROR
+    return "\n".join(out) + "\n"
 
 
 class ArchPlugin(DistroPlugin):
@@ -40,7 +78,7 @@ class ArchPlugin(DistroPlugin):
             missing.append("pacstrap")
         return missing
 
-    def acquire_tools(self, executor: Executor) -> None:
+    def acquire_tools(self, ctx: InstallContext, executor: Executor) -> None:
         """Download the official bootstrap tarball and extract it."""
         if _BOOTSTRAP_ROOT.exists():
             return
@@ -59,9 +97,7 @@ class ArchPlugin(DistroPlugin):
         # Enable a mirror so pacstrap inside the bootstrap chroot works.
         mirrorlist = _BOOTSTRAP_ROOT / "etc" / "pacman.d" / "mirrorlist"
         if mirrorlist.exists():
-            mirrorlist.write_text(
-                "Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n"
-            )
+            mirrorlist.write_text(_build_mirrorlist(ctx.mirror_countries))
 
         # Copy host DNS config so pacstrap can reach mirrors from the chroot.
         resolv_src = Path("/etc/resolv.conf")
@@ -110,6 +146,12 @@ class ArchPlugin(DistroPlugin):
                 self._unbind_target(ctx, executor)
 
     def post_bootstrap(self, ctx: InstallContext, executor: Executor) -> None:
+        # Apply user-selected mirrorlist to the target.
+        if ctx.mirror_countries:
+            target_mirrorlist = ctx.target_mount / "etc" / "pacman.d" / "mirrorlist"
+            if target_mirrorlist.parent.exists():
+                target_mirrorlist.write_text(_build_mirrorlist(ctx.mirror_countries))
+
         # Enable parallel downloads in pacman.
         pacman_conf = ctx.target_mount / "etc" / "pacman.conf"
         if pacman_conf.exists():
@@ -117,8 +159,10 @@ class ArchPlugin(DistroPlugin):
             text = text.replace("#ParallelDownloads", "ParallelDownloads")
             pacman_conf.write_text(text)
 
-        executor.run_chroot(ctx, ["pacman-key", "--init"])
-        executor.run_chroot(ctx, ["pacman-key", "--populate", "archlinux"])
+        # pacstrap -K already initialised the target keyring; re-running
+        # pacman-key --init here would try to regenerate the master key and
+        # fails because gpg-agent can't spawn inside the fresh chroot
+        # (no /run/user/0, stale sockets). Skip it.
         packages = [
             "linux", "linux-firmware", "grub", "efibootmgr",
             "networkmanager", "sudo",

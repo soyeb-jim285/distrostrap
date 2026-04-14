@@ -38,7 +38,7 @@ class DistroPlugin(ABC):
         ...
 
     @abstractmethod
-    def acquire_tools(self, executor: Executor) -> None:
+    def acquire_tools(self, ctx: InstallContext, executor: Executor) -> None:
         """Download or prepare tools that are not available on the host."""
         ...
 

@@ -42,7 +42,7 @@ def _stage_preflight(ctx: InstallContext, executor: Executor) -> None:
     plugin = get_plugin(ctx.distro)
     missing = plugin.check_host_tools(executor)
     if missing:
-        plugin.acquire_tools(executor)
+        plugin.acquire_tools(ctx, executor)
 
 
 def _stage_partition(ctx: InstallContext, executor: Executor) -> None:
