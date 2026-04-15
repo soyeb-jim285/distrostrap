@@ -48,10 +48,10 @@ def configure_users(ctx: InstallContext, executor: Executor) -> None:
     root_pw = ctx.root_password if ctx.root_password else ctx.password
     _chpasswd(ctx, executor, "root", root_pw)
 
-    # Allow passwordless sudo for the group.
+    # Grant sudo rights to the group (password required).
     sudoers_dir = ctx.target_mount / "etc" / "sudoers.d"
     sudoers_dir.mkdir(parents=True, exist_ok=True)
 
     sudoers_file = sudoers_dir / group
-    sudoers_file.write_text(f"%{group} ALL=(ALL:ALL) NOPASSWD: ALL\n")
+    sudoers_file.write_text(f"%{group} ALL=(ALL:ALL) ALL\n")
     sudoers_file.chmod(0o440)
