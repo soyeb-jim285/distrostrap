@@ -18,6 +18,20 @@ _BOOTSTRAP_ROOT = Path("/tmp/distrostrap-arch-bootstrap")
 _DEFAULT_MIRROR = "Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n"
 
 
+def _host_pacstrap_usable() -> bool:
+    """Host pacstrap is only usable if pacman.conf also exists.
+
+    On non-Arch hosts (Ubuntu/Debian) users may install the
+    ``arch-install-scripts`` package, which provides the pacstrap binary
+    but not ``/etc/pacman.conf`` — pacstrap fails immediately in that case.
+    Fall back to the downloaded bootstrap tarball instead.
+    """
+    return (
+        shutil.which("pacstrap") is not None
+        and Path("/etc/pacman.conf").exists()
+    )
+
+
 def _build_mirrorlist(countries: list[str]) -> str:
     """Fetch an Arch mirrorlist for the given ISO country codes.
 
@@ -74,7 +88,7 @@ class ArchPlugin(DistroPlugin):
 
     def check_host_tools(self, executor: Executor) -> list[str]:
         missing: list[str] = []
-        if shutil.which("pacstrap") is None:
+        if not _host_pacstrap_usable():
             missing.append("pacstrap")
         return missing
 
@@ -126,7 +140,7 @@ class ArchPlugin(DistroPlugin):
     def bootstrap(self, ctx: InstallContext, executor: Executor) -> None:
         target = str(ctx.target_mount)
 
-        if shutil.which("pacstrap") is not None:
+        if _host_pacstrap_usable():
             executor.run(["pacstrap", "-K", target, "base"], stream=True)
             return
 
