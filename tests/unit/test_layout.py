@@ -5,8 +5,6 @@ from __future__ import annotations
 import pytest
 
 from distrostrap.partition.layout import (
-    PartitionLayout,
-    PartitionSpec,
     default_bios,
     default_uefi,
     layout_from_name,

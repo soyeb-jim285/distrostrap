@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from distrostrap.partition.layout import PartitionLayout
@@ -16,7 +16,7 @@ class InstallContext:
     distro_variant: str = ""
     target_device: str = ""
     target_is_partition: bool = False  # True if installing to existing partition
-    partition_layout: Optional[PartitionLayout] = None
+    partition_layout: PartitionLayout | None = None
     hostname: str = ""
     username: str = ""
     password: str = ""

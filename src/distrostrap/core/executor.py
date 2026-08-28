@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from distrostrap.core.context import InstallContext
@@ -99,14 +99,14 @@ class Executor:
                 text=True,
                 env=env,
             )
-            assert proc.stderr is not None  # noqa: S101
-            assert proc.stdout is not None  # noqa: S101
+            assert proc.stderr is not None
+            assert proc.stdout is not None
 
             all_lines: list[str] = []
             lock = threading.Lock()
 
-            def _read_pipe(pipe: object) -> None:
-                for raw_line in pipe:  # type: ignore[union-attr]
+            def _read_pipe(pipe: IO[str]) -> None:
+                for raw_line in pipe:
                     line = raw_line.rstrip("\n\r")
                     with lock:
                         all_lines.append(line)

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
+from distrostrap.core.context import InstallContext
 from distrostrap.core.executor import Executor
 from distrostrap.distros.base import DistroPlugin
-from distrostrap.core.context import InstallContext
 
 
 class _DummyPlugin(DistroPlugin):

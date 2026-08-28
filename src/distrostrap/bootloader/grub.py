@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from distrostrap.core.chroot import chroot_context
 from distrostrap.core.context import InstallContext

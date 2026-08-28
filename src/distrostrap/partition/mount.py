@@ -46,7 +46,10 @@ def mount_target(
     target = ctx.target_mount
     target.mkdir(parents=True, exist_ok=True)
 
-    by_role = {part.role: (part, path) for part, path in zip(layout.parts, part_paths)}
+    by_role = {
+        part.role: (part, path)
+        for part, path in zip(layout.parts, part_paths, strict=True)
+    }
 
     # Mount root first
     if "root" in by_role:
@@ -79,7 +82,10 @@ def unmount_target(
     if layout is None:
         return
 
-    by_role = {part.role: (part, path) for part, path in zip(layout.parts, part_paths)}
+    by_role = {
+        part.role: (part, path)
+        for part, path in zip(layout.parts, part_paths, strict=False)
+    }
 
     # Swapoff
     if "swap" in by_role:

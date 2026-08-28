@@ -17,6 +17,7 @@ dev = [
     "pytest-asyncio",
     "ruff",
     "mypy",
+    "types-PyYAML",
 ]
 
 [project.scripts]
@@ -28,6 +29,15 @@ where = ["src"]
 [tool.ruff]
 line-length = 99
 target-version = "py311"
+
+[tool.ruff.lint]
+# Pin the rule set explicitly — ruff's defaults shift between releases, and
+# without this an upgrade silently turns on hundreds of new rules.
+# This is ruff's classic default (E4/E7/E9 + F) plus import sorting, pyupgrade
+# and bugbear.  Deliberately excluded: BLE (blind-except) and S110
+# (try/except/pass) — best-effort cleanup and non-fatal fallbacks are
+# intentional throughout an installer that must never crash mid-run.
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

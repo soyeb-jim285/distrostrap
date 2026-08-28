@@ -5,7 +5,6 @@ from __future__ import annotations
 from distrostrap.core.context import InstallContext
 from distrostrap.core.executor import Executor
 
-
 _MKFS_COMMANDS: dict[str, list[str]] = {
     "vfat": ["mkfs.fat", "-F", "32"],
     "ext4": ["mkfs.ext4", "-F"],
@@ -54,7 +53,7 @@ def format_partitions(
             f"{len(part_paths)} device paths"
         )
 
-    for part, path in zip(layout.parts, part_paths):
+    for part, path in zip(layout.parts, part_paths, strict=True):
         mkfs_cmd = _MKFS_COMMANDS.get(part.fstype)
         if mkfs_cmd is None:
             raise ValueError(f"Unsupported filesystem type: {part.fstype!r}")

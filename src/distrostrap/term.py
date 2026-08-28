@@ -191,7 +191,7 @@ def box(
     """Draw a centered rounded-border box. Returns terminal row of first content line."""
     tc, tr = termsize()
 
-    max_w = max((vlen(l) for l in lines), default=0)
+    max_w = max((vlen(ln) for ln in lines), default=0)
     if title:
         max_w = max(max_w, vlen(title) + 4)
     if hint:
@@ -272,9 +272,7 @@ def menu(title: str, items: list[str], back: bool = True) -> int:
                 return clicked
         elif key == ENTER:
             return idx
-        elif key == ESC:
-            return -1
-        elif key == "q" and not back:
+        elif key == ESC or key == "q" and not back:
             return -1
 
 
@@ -415,7 +413,7 @@ def input_field(
         enable_mouse()
 
 
-def spinner(msg: str, func: "Callable[[], _T]") -> "_T":
+def spinner(msg: str, func: Callable[[], _T]) -> _T:
     """Show an animated spinner in a centered box while func() runs."""
     import threading
     import time as _time

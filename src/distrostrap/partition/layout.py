@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 # SGDisk GPT type codes
 GPT_TYPE_ESP = "EF00"
 GPT_TYPE_SWAP = "8200"

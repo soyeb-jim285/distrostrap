@@ -358,8 +358,10 @@ def user_config(ctx: InstallContext) -> str:
         t.move(8, 1)
         t.show_cursor()
 
-        def _field(label: str, default: str = "", password: bool = False) -> str:
-            return t.input_field(label, default=default, password=password, prefix=pad)
+        def _field(
+            label: str, default: str = "", password: bool = False, *, prefix: str = pad
+        ) -> str:
+            return t.input_field(label, default=default, password=password, prefix=prefix)
 
         hostname = _field("hostname")
         if not hostname:
@@ -449,7 +451,7 @@ def confirm_install(ctx: InstallContext) -> str:
 
     # Position cursor after the box for input
     tc, _ = t.termsize()
-    inner_w = max((t.vlen(l) for l in lines), default=0) + 4
+    inner_w = max((t.vlen(ln) for ln in lines), default=0) + 4
     start_col = max(1, (tc - inner_w) // 2 + 1)
     input_row = end_row + len(lines) + 3  # below the box
     t.move(input_row, start_col)
@@ -470,7 +472,7 @@ def confirm_install(ctx: InstallContext) -> str:
 
 def install_and_done(ctx: InstallContext) -> str:
     from distrostrap.core.executor import Executor
-    from distrostrap.core.pipeline import STAGES, run_install
+    from distrostrap.core.pipeline import run_install
 
     t = term
     t.clear()
@@ -485,7 +487,6 @@ def install_and_done(ctx: InstallContext) -> str:
 
     log_path = "distrostrap.log"
     log_fh = open(log_path, "w")
-    total = len(STAGES)
 
     def _clear_status() -> None:
         """Clear any active status line before printing a permanent line."""

@@ -12,7 +12,6 @@ from distrostrap.core.safety import (
     validate_target,
 )
 
-
 # Sample /proc/mounts content for mocking.
 _PROC_MOUNTS = """\
 /dev/sda2 / ext4 rw,relatime 0 0

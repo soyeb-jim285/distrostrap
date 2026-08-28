@@ -20,8 +20,8 @@ def _stage_validate(ctx: InstallContext, executor: Executor) -> None:
     if not ctx.dry_run and os.geteuid() != 0:
         raise RuntimeError("distrostrap must be run as root.")
 
-    from distrostrap.core.safety import validate_target
     from distrostrap.core.host_info import check_network
+    from distrostrap.core.safety import validate_target
 
     errors = validate_target(ctx.target_device, is_partition=ctx.target_is_partition)
     if errors and not ctx.dry_run:
@@ -52,8 +52,8 @@ def _stage_partition(ctx: InstallContext, executor: Executor) -> None:
         ctx.partition_paths = [ctx.target_device]
         return
 
-    from distrostrap.partition.layout import layout_from_name
     from distrostrap.partition.create import create_partitions
+    from distrostrap.partition.layout import layout_from_name
 
     if isinstance(ctx.partition_layout, str):
         ctx.partition_layout = layout_from_name(ctx.partition_layout, ctx.boot_mode)
@@ -100,13 +100,13 @@ def _stage_bootstrap(ctx: InstallContext, executor: Executor) -> None:
 
 def _stage_configure(ctx: InstallContext, executor: Executor) -> None:
     """Apply system configuration inside the target chroot."""
-    from distrostrap.core.chroot import bind_mount, unbind_mount
     from distrostrap.config.fstab import generate_fstab
     from distrostrap.config.hostname import configure_hostname
     from distrostrap.config.locale import configure_locale
+    from distrostrap.config.network import configure_network
     from distrostrap.config.timezone import configure_timezone
     from distrostrap.config.users import configure_users
-    from distrostrap.config.network import configure_network
+    from distrostrap.core.chroot import bind_mount, unbind_mount
 
     bind_mount(executor, ctx.target_mount)
     try:
