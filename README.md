@@ -48,6 +48,20 @@ For development (includes pytest, ruff, mypy):
 .venv/bin/pip install -e ".[dev]"
 ```
 
+### Setup with uv
+
+If you use [uv](https://docs.astral.sh/uv/), it creates `.venv` and installs everything in one step:
+
+```bash
+git clone https://github.com/soyeb-jim285/distrostrap.git
+cd distrostrap
+uv sync                 # runtime only
+uv sync --extra dev     # with pytest, ruff, mypy
+```
+
+Run the installer through `.venv/bin/distrostrap` as shown below, not `uv run` — `sudo`
+resets the environment, so `uv run` may resolve a different interpreter than the project venv.
+
 ## Usage
 
 ### Interactive Mode (TUI)
@@ -161,6 +175,15 @@ distrostrap includes several safeguards:
 
 # Type check
 .venv/bin/mypy src/
+```
+
+With uv:
+
+```bash
+uv run pytest
+uv run pytest tests/unit/test_safety.py -v
+uv run ruff check src/ tests/
+uv run mypy src/
 ```
 
 ## Project Structure
