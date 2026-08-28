@@ -12,8 +12,11 @@ from distrostrap.core.executor import Executor
 from distrostrap.distros.base import DistroPlugin
 
 _RELEASES_BASE = "https://download.fedoraproject.org/pub/fedora/linux/releases"
+# download.fedoraproject.org is a redirector: it serves files but 404s on
+# directory listings, so version discovery has to go to the master mirror.
+_LISTING_BASE = "https://dl.fedoraproject.org/pub/fedora/linux/releases"
 _BOOTSTRAP_ROOT = Path("/tmp/distrostrap-fedora-bootstrap")
-_FALLBACK_VARIANTS = ["42", "41"]
+_FALLBACK_VARIANTS = ["44", "43", "42"]
 
 
 def _fetch_fedora_variants() -> list[str]:
@@ -21,7 +24,7 @@ def _fetch_fedora_variants() -> list[str]:
     for _ in range(3):
         try:
             result = subprocess.run(
-                ["curl", "-fsSL", "--max-time", "5", f"{_RELEASES_BASE}/"],
+                ["curl", "-fsSL", "--max-time", "5", f"{_LISTING_BASE}/"],
                 capture_output=True, text=True, timeout=10,
             )
         except (subprocess.TimeoutExpired, OSError):
